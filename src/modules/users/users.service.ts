@@ -38,6 +38,10 @@ export class UsersService {
     return this.users.find((user) => user.id === id);
   }
 
+  findByEmail(email: string): User {
+    return this.users.find((user) => user.email === email);
+  }
+
   update(id: number, updateUserDto: UpdateUserDto) {
     return `This action updates a #${id} user`;
   }
