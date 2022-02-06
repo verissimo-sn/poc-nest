@@ -1,16 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { Task } from './entities/task.entity';
+
+export interface IUpdateTask extends UpdateTaskDto {
+  done: boolean;
+}
 
 @Injectable()
 export class TasksService {
   private tasks: Task[] = [];
 
-  create({ name, description }: CreateTaskDto): Task {
+  create(userId: string, { name, description }: CreateTaskDto): Task {
     const task = new Task();
 
     Object.assign(task, {
+      user_id: userId,
       name,
       description,
     });
@@ -20,30 +29,47 @@ export class TasksService {
     return task;
   }
 
-  findAll(): Task[] {
-    return this.tasks;
+  findAll(userId: string): Task[] {
+    const tasks = this.tasks.filter((task) => task.user_id === userId);
+    return tasks;
   }
 
-  findOne(id: string): Task {
-    return this.tasks.find((task) => task.id === id);
+  findOne(userId: string, id: string): Task {
+    const task = this.tasks.find((task) => task.id === id);
+
+    if (!task) {
+      throw new BadRequestException('Task not found');
+    }
+
+    if (task.user_id !== userId) {
+      throw new UnauthorizedException('User unauthorized');
+    }
+
+    return task;
   }
 
-  update(id: string, { name, description }: UpdateTaskDto): void {
+  update(
+    userId: string,
+    id: string,
+    { name, description, done }: IUpdateTask,
+  ): Task {
     const index = this.tasks.findIndex((task) => task.id === id);
 
-    this.tasks[index] = {
-      ...this.tasks[index],
-      name,
-      description,
-    };
-  }
+    if (index > 0) {
+      throw new BadRequestException('Task not found');
+    }
 
-  updateStatus(id: string): Task {
-    const index = this.tasks.findIndex((task) => task.id === id);
+    const task = this.tasks[index];
+
+    if (task.user_id !== userId) {
+      throw new UnauthorizedException('User unauthorized');
+    }
 
     const updatedTask = {
-      ...this.tasks[index],
-      done: !this.tasks[index].done,
+      ...task,
+      name,
+      description,
+      done: done === true ? done : false,
     };
 
     this.tasks[index] = updatedTask;
@@ -51,8 +77,18 @@ export class TasksService {
     return updatedTask;
   }
 
-  remove(id: string): void {
+  remove(userId: string, id: string): void {
     const index = this.tasks.findIndex((task) => task.id === id);
+
+    if (index > 0) {
+      throw new BadRequestException('Task not found');
+    }
+
+    const task = this.tasks[index];
+
+    if (task.user_id !== userId) {
+      throw new UnauthorizedException('User unauthorized');
+    }
 
     this.tasks.splice(index, 1);
   }

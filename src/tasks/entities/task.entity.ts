@@ -9,6 +9,8 @@ export class Task {
 
   readonly done: boolean;
 
+  readonly user_id: string;
+
   readonly createdAt: Date;
 
   readonly updatedAt: Date;
