@@ -22,15 +22,13 @@ export class ResponseDataTransformInterceptor<T>
     const [, response] = context.getArgs();
 
     const { url, method } = response.req.res.req;
-    const { statusCode } = response.req.res;
 
     return next.handle().pipe(
       map((data) => {
         return {
-          statusCode,
+          timestamp: new Date().toISOString(),
+          path: url,
           method,
-          url,
-          error: null,
           data: data ? data : [],
         };
       }),
