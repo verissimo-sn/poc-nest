@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { compareSync } from 'bcrypt';
@@ -29,13 +29,13 @@ export class AuthService {
     const user = this.usersService.findByEmail(email);
 
     if (!user) {
-      throw new Error('User or password incorrect');
+      throw new BadRequestException('User or password incorrect');
     }
 
     const PasswordMatch = compareSync(password, user.password);
 
     if (!PasswordMatch) {
-      throw new Error('User or password incorrect');
+      throw new BadRequestException('User or password incorrect');
     }
 
     return user;
