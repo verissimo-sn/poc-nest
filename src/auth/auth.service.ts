@@ -16,7 +16,7 @@ export class AuthService {
   ) {}
 
   async login(email: string, password: string): Promise<ILoginResponse> {
-    const user = this.validate(email, password);
+    const user = await this.validate(email, password);
 
     const payload = { sub: user.id, username: user.name };
 
@@ -25,8 +25,8 @@ export class AuthService {
     };
   }
 
-  validate(email: string, password: string): User {
-    const user = this.usersService.findByEmail(email);
+  async validate(email: string, password: string): Promise<User> {
+    const user = await this.usersService.findByEmail(email);
 
     if (!user) {
       throw new BadRequestException('User or password incorrect');
