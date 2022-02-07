@@ -1,35 +1,33 @@
 import { Injectable } from '@nestjs/common';
-import { hashSync } from 'bcrypt';
+import { InjectModel } from '@nestjs/mongoose';
+import { hash } from 'bcrypt';
+import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entities/user.entity';
+import { User, userDocument } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
-  private readonly users: User[] = [];
+  constructor(
+    @InjectModel(User.name)
+    private userModel: Model<userDocument>,
+  ) {}
 
-  create(createUserDto: CreateUserDto): void {
-    const user = new User();
+  async create(createUserDto: CreateUserDto): Promise<void> {
+    const password = await hash(createUserDto.password, 8);
 
-    const password = hashSync(createUserDto.password, 8);
-
-    Object.assign(user, {
+    const user = {
       ...createUserDto,
       password,
-    });
+    };
 
-    this.users.push(user);
+    await this.userModel.create(user);
   }
 
-  findById(id: string): User {
-    return this.users.find((user) => user.id === id);
+  async findById(id: string): Promise<User> {
+    return this.userModel.findById(id);
   }
 
-  findByEmail(email: string): User {
-    return this.users.find((user) => user.email === email);
-  }
-
-  update(id: string, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async findByEmail(email: string): Promise<User> {
+    return this.userModel.findOne({ email });
   }
 }
