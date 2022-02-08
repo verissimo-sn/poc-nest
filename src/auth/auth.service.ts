@@ -11,14 +11,14 @@ export interface ILoginResponse {
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly usersService: UsersService,
+    private readonly userService: UsersService,
     private readonly jwtService: JwtService,
   ) {}
 
   async login(email: string, password: string): Promise<ILoginResponse> {
     const user = await this.validate(email, password);
 
-    const payload = { sub: user.id, username: user.name };
+    const payload = { sub: user._id, username: user.name };
 
     return {
       access_token: this.jwtService.sign(payload),
@@ -26,15 +26,15 @@ export class AuthService {
   }
 
   async validate(email: string, password: string): Promise<User> {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.userService.findByEmail(email);
 
     if (!user) {
       throw new BadRequestException('User or password incorrect');
     }
 
-    const PasswordMatch = compareSync(password, user.password);
+    const passwordMatch = compareSync(password, user.password);
 
-    if (!PasswordMatch) {
+    if (!passwordMatch) {
       throw new BadRequestException('User or password incorrect');
     }
 
