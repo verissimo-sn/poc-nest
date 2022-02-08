@@ -3,9 +3,12 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, ObjectId } from 'mongoose';
+import { User, userDocument } from 'src/users/entities/user.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { Task } from './entities/task.entity';
+import { Task, taskDocument } from './entities/task.entity';
 
 export interface IUpdateTask extends UpdateTaskDto {
   done: boolean;
@@ -13,83 +16,64 @@ export interface IUpdateTask extends UpdateTaskDto {
 
 @Injectable()
 export class TasksService {
-  private tasks: Task[] = [];
+  constructor(
+    @InjectModel(Task.name)
+    private taskModel: Model<taskDocument>,
+    @InjectModel(User.name)
+    private userModel: Model<userDocument>,
+  ) {}
 
-  create(userId: string, { name, description }: CreateTaskDto): Task {
-    const task = new Task();
+  async create(
+    userId: string,
+    { name, description }: CreateTaskDto,
+  ): Promise<Task> {
+    const user = await this.userModel.findById(userId);
 
-    Object.assign(task, {
-      user_id: userId,
+    return this.taskModel.create({
+      user,
       name,
       description,
     });
-
-    this.tasks.push(task);
-
-    return task;
   }
 
-  findAll(userId: string): Task[] {
-    const tasks = this.tasks.filter((task) => task.user_id === userId);
-    return tasks;
+  async findAll(userId: string): Promise<Task[]> {
+    return this.taskModel.find({ user: userId });
   }
 
-  findOne(userId: string, id: string): Task {
-    const task = this.tasks.find((task) => task.id === id);
+  async findOne(userId: string, id: string): Promise<Task> {
+    const task = await this.taskModel.findById(id);
 
     if (!task) {
       throw new BadRequestException('Task not found');
     }
 
-    if (task.user_id !== userId) {
-      throw new UnauthorizedException('User unauthorized');
+    if (task.user.toString() !== userId) {
+      throw new UnauthorizedException('User not authorized');
     }
 
     return task;
   }
 
-  update(
+  async update(
     userId: string,
     id: string,
     { name, description, done }: IUpdateTask,
-  ): Task {
-    const index = this.tasks.findIndex((task) => task.id === id);
+  ): Promise<void> {
+    const updatedTask = await this.taskModel.findOneAndUpdate(
+      { _id: id },
+      { $set: { name, description, done: done ? true : false } },
+    );
 
-    if (index > 0) {
+    if (!updatedTask) {
       throw new BadRequestException('Task not found');
     }
-
-    const task = this.tasks[index];
-
-    if (task.user_id !== userId) {
-      throw new UnauthorizedException('User unauthorized');
-    }
-
-    const updatedTask = {
-      ...task,
-      name,
-      description,
-      done: done === true ? done : false,
-    };
-
-    this.tasks[index] = updatedTask;
-
-    return updatedTask;
   }
 
-  remove(userId: string, id: string): void {
-    const index = this.tasks.findIndex((task) => task.id === id);
+  async remove(userId: string, id: string): Promise<void> {
+    const deletedTask = await this.taskModel.findByIdAndDelete({ _id: id });
 
-    if (index > 0) {
+    if (!deletedTask) {
       throw new BadRequestException('Task not found');
     }
-
-    const task = this.tasks[index];
-
-    if (task.user_id !== userId) {
-      throw new UnauthorizedException('User unauthorized');
-    }
-
-    this.tasks.splice(index, 1);
   }
 }

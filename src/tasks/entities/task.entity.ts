@@ -1,24 +1,24 @@
-import { v4 as uuid } from 'uuid';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Schema as mongooseSchema } from 'mongoose';
+import { User } from 'src/users/entities/user.entity';
 
+@Schema({ timestamps: true })
 export class Task {
-  readonly id?: string;
+  @Prop({ type: mongooseSchema.Types.ObjectId })
+  id: string;
 
-  readonly name: string;
+  @Prop()
+  name: string;
 
-  readonly description: string;
+  @Prop()
+  description: string;
 
-  readonly done: boolean;
+  @Prop()
+  done: boolean;
 
-  readonly user_id: string;
-
-  readonly createdAt: Date;
-
-  readonly updatedAt: Date;
-
-  constructor() {
-    if (!this.id) {
-      this.id = uuid();
-      this.done = false;
-    }
-  }
+  @Prop({ type: mongooseSchema.Types.ObjectId, ref: 'User' })
+  user: User;
 }
+
+export type taskDocument = Task & Document;
+export const TaskSchema = SchemaFactory.createForClass(Task);
